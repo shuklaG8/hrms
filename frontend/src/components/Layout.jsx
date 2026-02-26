@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Routes, Route } from 'react-router-dom';
 import { Users, CalendarCheck, Menu, X } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -35,6 +35,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 <nav className="flex-1 px-4 py-4 space-y-2">
                     <NavLink
                         to="/"
+                        onClick={() => setIsOpen(false)}
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
+                                ? 'bg-indigo-600/20 text-indigo-400 font-medium scale-[1.02] shadow-sm'
+                                : 'hover:bg-slate-800 hover:text-white hover:scale-[1.02] active:scale-[0.98]'
+                            }`
+                        }
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        <span>Dashboard</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/employees"
                         onClick={() => setIsOpen(false)}
                         className={({ isActive }) =>
                             `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
@@ -95,7 +111,12 @@ const Layout = () => {
                             <Menu size={24} />
                         </button>
                         <h1 className="text-xl font-semibold text-slate-800 md:hidden">HR Dashboard</h1>
-                        <h1 className="text-xl font-semibold text-slate-800 hidden md:block">Overview Dashboard</h1>
+
+                        <Routes>
+                            <Route path="/" element={<h1 className="text-xl font-semibold text-slate-800 hidden md:block">Dashboard</h1>} />
+                            <Route path="/employees" element={<h1 className="text-xl font-semibold text-slate-800 hidden md:block">Employees</h1>} />
+                            <Route path="/attendance" element={<h1 className="text-xl font-semibold text-slate-800 hidden md:block">Attendance</h1>} />
+                        </Routes>
                     </div>
                 </header>
 
