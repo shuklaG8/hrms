@@ -1,0 +1,326 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, CheckCircle, Clock, Filter, ShieldCheck, CheckSquare, XSquare, AlertCircle } from 'lucide-react';
+import api from '../api/useService';
+
+const AttendancePage = () => {
+    const [employees, setEmployees] = useState([]);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [formData, setFormData] = useState({
+        employee: '',
+        date: new Date().toISOString().split('T')[0],
+        status: 'Present'
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const [filterEmployeeId, setFilterEmployeeId] = useState('');
+
+    useEffect(() => {
+        fetchEmployees();
+        fetchAttendance();
+    }, []);
+
+    useEffect(() => {
+        fetchAttendance(filterEmployeeId);
+    }, [filterEmployeeId]);
+
+    const fetchEmployees = async () => {
+        try {
+            const res = await api.get('employees/');
+            setEmployees(res.data);
+        } catch (err) {
+            console.error("Failed to fetch employees", err);
+        }
+    };
+
+    const fetchAttendance = async (employeeId = '') => {
+        try {
+            setLoading(true);
+            const url = employeeId ? `attendance/?employee_id=${employeeId}` : 'attendance/';
+            const res = await api.get(url);
+            setAttendanceRecords(res.data);
+            setError(null);
+        } catch (err) {
+            setError('Failed to fetch attendance records from server.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError(null);
+        try {
+            await api.post('attendance/', formData);
+            fetchAttendance(filterEmployeeId);
+            alert("Attendance successfully recorded!");
+        } catch (err) {
+            if (err.response?.data) {
+                const errorMsg = Object.values(err.response.data).flat().join(' ');
+                setError(errorMsg || 'Failed to mark attendance.');
+            } else {
+                setError('An unexpected error occurred. Please verify data.');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const getStatusStyles = (status) => {
+        if (status === 'Present') return {
+            bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200/60', icon: <CheckCircle size={14} className="mr-1.5" />
+        };
+        if (status === 'Absent') return {
+            bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200/60', icon: <XSquare size={14} className="mr-1.5" />
+        };
+        return {
+            bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', icon: null
+        };
+    };
+
+    return (
+        <div className="space-y-4 sm:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-800">Attendance</h2>
+                    <p className="text-slate-500 text-sm sm:text-base mt-1">Record and monitor employee presence daily</p>
+                </div>
+            </div>
+
+            {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-sm flex items-start gap-3" role="alert">
+                    <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                    <div>
+                        <p className="font-semibold text-sm">Action Required</p>
+                        <p className="text-sm mt-0.5">{error}</p>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+
+                {/* MARK ATTENDANCE */}
+                <div className="xl:col-span-1">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-24 transition-shadow hover:shadow-md">
+                        <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white">
+                            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                    <CheckSquare size={18} />
+                                </div>
+                                Record Entry
+                            </h3>
+                        </div>
+
+                        <div className="p-4 sm:p-5 bg-white">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 block">Select Employee</label>
+                                    <select
+                                        name="employee"
+                                        value={formData.employee}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm font-medium text-slate-800 appearance-none cursor-pointer"
+                                        required
+                                    >
+                                        <option value="" disabled className="text-slate-400">Choose a team member...</option>
+                                        {employees.map(emp => (
+                                            <option key={emp.employeeId} value={emp.employeeId}>
+                                                {emp.fullName} ({emp.employeeId})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 block">Record Date</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                                            <CalendarIcon size={18} />
+                                        </div>
+                                        <input
+                                            type="date"
+                                            name="date"
+                                            max={new Date().toISOString().split('T')[0]}
+                                            value={formData.date}
+                                            onChange={handleInputChange}
+                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm font-medium text-slate-800 cursor-pointer"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                    <label className="text-sm font-medium text-slate-700 block">Attendance Status</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <label className={`
+                                            cursor-pointer flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98] group
+                                            ${formData.status === 'Present'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md shadow-emerald-500/10'
+                                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-600'}
+                                        `}>
+                                            <input
+                                                type="radio"
+                                                name="status"
+                                                value="Present"
+                                                checked={formData.status === 'Present'}
+                                                onChange={handleInputChange}
+                                                className="sr-only"
+                                            />
+                                            <div className={`p-2 rounded-full mb-2 ${formData.status === 'Present' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 group-hover:text-slate-500'}`}>
+                                                <ShieldCheck size={20} />
+                                            </div>
+                                            <span className="font-semibold text-sm">Present</span>
+                                        </label>
+
+                                        <label className={`
+                                            cursor-pointer flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98] group
+                                            ${formData.status === 'Absent'
+                                                ? 'border-red-500 bg-red-50 text-red-700 shadow-md shadow-red-500/10'
+                                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-600'}
+                                        `}>
+                                            <input
+                                                type="radio"
+                                                name="status"
+                                                value="Absent"
+                                                checked={formData.status === 'Absent'}
+                                                onChange={handleInputChange}
+                                                className="sr-only"
+                                            />
+                                            <div className={`p-2 rounded-full mb-2 ${formData.status === 'Absent' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400 group-hover:text-slate-500'}`}>
+                                                <XSquare size={20} />
+                                            </div>
+                                            <span className="font-semibold text-sm">Absent</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="pt-3">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2.5 px-4 rounded-xl font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg shadow-emerald-500/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {submitting ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <CheckCircle size={18} />
+                                        )}
+                                        <span>{submitting ? 'Recording...' : 'Save Attendance Log'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RECORDS TABLE */}
+                <div className="xl:col-span-2">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col transition-shadow hover:shadow-md min-h-[500px]">
+                        <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                    <Clock size={18} />
+                                </div>
+                                Recent Logs
+                            </h3>
+
+                            <div className="relative w-full sm:w-auto">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <Filter size={16} />
+                                </div>
+                                <select
+                                    value={filterEmployeeId}
+                                    onChange={(e) => setFilterEmployeeId(e.target.value)}
+                                    className="w-full sm:w-56 pl-10 pr-8 py-2 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-medium text-slate-700 shadow-sm appearance-none cursor-pointer"
+                                >
+                                    <option value="">Sort: All Team Members</option>
+                                    {employees.map(emp => (
+                                        <option key={`filter-${emp.employeeId}`} value={emp.employeeId}>
+                                            {emp.fullName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 p-0 overflow-hidden flex flex-col bg-white">
+                            {loading ? (
+                                <div className="flex-1 flex items-center justify-center p-12">
+                                    <div className="flex flex-col items-center gap-4 text-slate-400">
+                                        <div className="w-12 h-12 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin"></div>
+                                        <p className="font-medium text-sm tracking-wide">Fetching logs...</p>
+                                    </div>
+                                </div>
+                            ) : attendanceRecords.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center p-8 sm:p-12 text-center bg-slate-50/30">
+                                    <div className="flex flex-col items-center gap-5 max-w-sm">
+                                        <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center shadow-inner">
+                                            <Clock size={32} className="text-emerald-300" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-semibold text-slate-800">Clear Records</h4>
+                                            <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">There are no attendance logs documented for the current filter criteria.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[600px]">
+                                        <thead>
+                                            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-widest font-bold border-b border-slate-200">
+                                                <th className="px-4 py-3">Timeline Date</th>
+                                                <th className="px-4 py-3">Employee Identity</th>
+                                                <th className="px-4 py-3 text-right">Registered Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-sm">
+                                            {attendanceRecords.map(record => {
+                                                const style = getStatusStyles(record.status);
+                                                const dateObj = new Date(record.date);
+                                                const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+                                                return (
+                                                    <tr key={record.id} className="hover:bg-slate-50/70 transition-colors group">
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-slate-800 shadow-sm">
+                                                                    <span className="text-[10px] font-bold text-slate-500 uppercase leading-none">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
+                                                                    <span className="font-bold leading-none mt-0.5">{dateObj.getDate()}</span>
+                                                                </div>
+                                                                <span className="font-medium text-slate-700">{displayDate}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="font-semibold text-slate-800">{record.employee_name}</p>
+                                                            <p className="text-xs text-slate-500 font-mono mt-0.5 tracking-tight">{record.employee_id}</p>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold border ${style.bg} ${style.text} ${style.border} shadow-sm shadow-[color:inherit] opacity-90`}>
+                                                                {style.icon}
+                                                                {record.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
+export default AttendancePage;
