@@ -1,0 +1,31 @@
+On branch main
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   frontend/src/api/axios.js
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both added:      backend/api/migrations/0001_initial.py
+	both added:      backend/api/migrations/__pycache__/0001_initial.cpython-313.pyc
+	both added:      backend/core/__pycache__/settings.cpython-313.pyc
+	both added:      backend/core/__pycache__/urls.cpython-313.pyc
+	both added:      backend/core/__pycache__/wsgi.cpython-313.pyc
+	both added:      backend/core/asgi.py
+	both added:      backend/core/settings.py
+	both added:      backend/core/urls.py
+	both added:      backend/core/wsgi.py
+	both added:      backend/db.sqlite3
+	both added:      frontend/.gitignore
+	both added:      frontend/src/main.jsx
+	both added:      frontend/src/pages/AttendancePage.jsx
+	both added:      frontend/src/pages/EmployeePage.jsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_checkout.txt
+	git_status.txt
+	git_status2.txt
+
